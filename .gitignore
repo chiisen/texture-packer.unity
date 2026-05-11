@@ -1,0 +1,49 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Visual Studio / JetBrains Rider
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.idea/
+
+# MonoDevelop
+*.pidb
+*.settings
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Unity - Package Manager
+/[Pp]ackages/
+
+# Project Settings
+/[Pp]roject[Ss]ettings/
+
+# Memory captured
+*.mem
+*.unitypack
+
+# Gradle
+.gradle/
+
+# Crashlytics
+crashlytics-build.properties
