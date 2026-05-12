@@ -168,15 +168,13 @@ namespace SpriteUnpacker
             int width = frame.w;
             int height = frame.h;
 
+            Debug.Log($"[SpriteUnpacker] Extract: '{frame.name}' rect=({x},{y},{width},{height}) atlas={atlasTexture.width}x{atlasTexture.height}");
+
             if (x + width > atlasTexture.width || y + height > atlasTexture.height)
             {
                 Debug.LogError($"[SpriteUnpacker] Frame out of bounds: {frame.name}");
                 return null;
             }
-
-            // TexturePacker Y軸原點在左上，Unity GetPixels32 原點在左下
-            // 需要轉換：unityY = atlasHeight - frame.y - frame.h
-            int unityY = atlasTexture.height - y - height;
 
             Color32[] allPixels = atlasTexture.GetPixels32();
             Color32[] croppedPixels = new Color32[width * height];
@@ -185,7 +183,7 @@ namespace SpriteUnpacker
             {
                 for (int px = 0; px < width; px++)
                 {
-                    int srcIndex = (unityY + py) * atlasTexture.width + (x + px);
+                    int srcIndex = (y + py) * atlasTexture.width + (x + px);
                     int dstIndex = py * width + px;
                     croppedPixels[dstIndex] = allPixels[srcIndex];
                 }
