@@ -251,8 +251,16 @@ namespace SpriteUnpacker
 
             SpriteUnpackerCore.SetReadableIfNeeded(atlasTexture);
 
+            int frameIndex = 0;
             foreach (SpriteFrame frame in frames)
             {
+                frameIndex++;
+                float frameProgress = (float)frameIndex / frames.Length;
+                EditorUtility.DisplayProgressBar(
+                    $"Extracting Sprites ({frameIndex}/{frames.Length})",
+                    $"{frame.name} ({Mathf.RoundToInt(frameProgress * 100)}%)",
+                    frameProgress);
+
                 Texture2D extractedTex = SpriteUnpackerCore.ExtractFromTexturePackJson(atlasTexture, frame);
                 if (extractedTex != null)
                 {
@@ -281,10 +289,18 @@ namespace SpriteUnpacker
                 return;
             }
 
+            int spriteIndex = 0;
             foreach (Sprite sprite in sprites)
             {
                 if (sprite == null)
                     continue;
+
+                spriteIndex++;
+                float spriteProgress = (float)spriteIndex / sprites.Length;
+                EditorUtility.DisplayProgressBar(
+                    $"Extracting Sprites ({spriteIndex}/{sprites.Length})",
+                    $"{sprite.name} ({Mathf.RoundToInt(spriteProgress * 100)}%)",
+                    spriteProgress);
 
                 Texture2D texture = sprite.texture;
                 if (texture == null)
