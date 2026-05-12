@@ -229,6 +229,8 @@ namespace SpriteUnpacker
             List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
             int pos = startPos;
 
+            Debug.Log($"[SpritePackerParser] ParseFramesObject startPos={startPos}, char='{json[startPos]}'");
+
             while (pos < json.Length)
             {
                 int keyStart = json.IndexOf("\"", pos);
@@ -259,6 +261,8 @@ namespace SpriteUnpacker
 
                 string frameObj = json.Substring(frameObjStart, frameObjEnd - frameObjStart + 1);
                 string frameData = GetNestedObject(frameObj, "\"frame\":");
+
+                Debug.Log($"[SpritePackerParser] key='{key}', frameData={(frameData == null ? "null" : "found")}");
 
                 if (!string.IsNullOrEmpty(frameData))
                 {
