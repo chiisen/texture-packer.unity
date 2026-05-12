@@ -8,7 +8,9 @@ TexturePacker Unity 3D 版
 | `Assets/Sprites/` | PNG 圖片資源（Atlas/Sprite） |
 | `Assets/Editor/SpriteUnpacker/` | 編輯器工具腳本 |
 
-### SpriteUnpacker 腳本說明
+### 腳本說明
+
+#### SpriteUnpacker（拆解工具）
 
 | 腳本 | 用途 |
 |------|------|
@@ -16,6 +18,41 @@ TexturePacker Unity 3D 版
 | `SpriteUnpackerCore.cs` | 核心拆解邏輯，讀取 Sprite、提取像素、設定紋理可讀取屬性 |
 | `SpriteUnpackerExporter.cs` | PNG 匯出工具，將 Texture2D 編碼為 PNG 並寫入磁碟 |
 | `TexturePackerParser.cs` | TexturePacker JSON 格式解析器 |
+
+#### SpritePacker（打包工具）
+
+| 腳本 | 用途 |
+|------|------|
+| `SpritePackerWindow.cs` | 編輯器視窗與 UI，選單入口 (`SpriteUnpacker/Pack to Atlas`)，處理多張 PNG 拖放與打包 |
+| `SpritePackerCore.cs` | 核心打包邏輯，使用 Unity `PackTextures` 將多張圖合并為 Atlas，並輸出 TexturePacker JSON |
+
+---
+
+## SpritePacker（打包工具）
+
+### 功能
+
+將多張個別 PNG 打包成一張 Atlas PNG，並輸出 TexturePacker JSON 格式（`.txt`）。
+
+輸出的 `.png` + `.txt` 可使用 SpriteUnpacker 拆解還原。
+
+### 使用方式
+
+1. 選單 `SpriteUnpacker/Pack to Atlas` 開啟工具
+2. 拖放多張 PNG 檔案到視窗
+3. **Atlas Name** 自動填入第一個檔案名稱（可自行修改）
+4. **Output Folder** 自動填入第一個檔案所在目錄（可自行修改）
+5. 選擇 **Max Atlas Size**（1024 / 2048 / 4096）
+6. 點擊「Pack & Export」執行打包
+
+### 輸出格式
+
+- `AtlasName.png` - 打包後的 Atlas 圖片
+- `AtlasName.txt` - TexturePacker JSON 格式設定檔
+
+---
+
+## SpriteUnpacker（拆解工具）
 
 ### 支援模式
 
@@ -29,24 +66,7 @@ SpriteUnpacker 自動偵測並支援兩種模式：
 ### 使用方式
 
 1. 將拼好的 Atlas PNG 與對應的 TexturePacker JSON 檔案放在同一目錄
-2. 選單 `Window/Sprite Tool/Unpack Sprite to PNGs` 開啟工具
+2. 選單 `SpriteUnpacker/Unpack to PNGs` 開啟工具
 3. 拖放 PNG 檔案到視窗，**Output Folder 會自動填入**（預設為 PNG 檔案同目錄下的子資料夾，資料夾名稱與 PNG 檔名相同）
 4. 若要改變輸出位置，可直接修改 Output Folder 或點擊「Browse Output Folder」選擇新目錄
 5. 點擊「Unpack via Drag & Drop」執行拆解
-
-### 關於打包（Atlas / Packing）
-
-目前此工具僅支援「拆解」（Atlas → 多張 Sprite），不支援「打包」（多張 Sprite → Atlas）。
-
-若要打包，推薦使用 [TexturePacker](https://www.codeandweb.com/texturepacker)（付費但功能完整）：
-
-```
-TexturePacker 支援 Unity 格式輸出：
-- 匯出類型選「Unity」或「TexturePacker JSON」
-- 輸出 .png + .txt（可用此工具拆解還原）
-- 或直接輸出 .png + .meta（Unity Sprite Metadata 模式）
-```
-
-如果需要我幫你寫一個 `SpritePacker`（打包工具），可以規劃需求：
-- 輸入：多張個別 PNG
-- 輸出：一張 Atlas PNG + 設定檔（供 SpriteUnpacker 使用）
