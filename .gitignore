@@ -47,3 +47,6 @@ x86/
 
 # Crashlytics
 crashlytics-build.properties
+
+# Sprite Unpacker - 作業目錄（不放版控）
+/Assets/Sprites/
