@@ -86,7 +86,7 @@ namespace SpriteUnpacker
         /// <summary>
         /// 若指定的紋理尚未開啟 Read/Write Enabled，則自動開啟並快取原始設定。
         /// </summary>
-        /// <param name="tex">要處理的可Texture2D 物件。</param>
+        /// <param name="tex">要處理的 Texture2D 物件。</param>
         /// <remarks>
         /// 此方法會檢查紋理的 isReadable 屬性，若為 false 則設為 true 並寫入 AssetDatabase。
         /// 原始設定會被儲存於 _readableCache，以便後續還原。
@@ -167,6 +167,12 @@ namespace SpriteUnpacker
             int y = frame.y;
             int width = frame.w;
             int height = frame.h;
+
+            if (x + width > atlasTexture.width || y + height > atlasTexture.height)
+            {
+                Debug.LogError($"[SpriteUnpacker] Frame out of bounds: {frame.name}");
+                return null;
+            }
 
             Color32[] pixels = atlasTexture.GetPixels32();
             Color32[] croppedPixels = new Color32[width * height];
