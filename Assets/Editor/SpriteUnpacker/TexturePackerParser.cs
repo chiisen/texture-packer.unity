@@ -139,32 +139,47 @@ namespace SpriteUnpacker
                 TexturePackerAtlas atlas = new TexturePackerAtlas();
                 List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
 
-                int framesStart = jsonContent.IndexOf("\"frames\":", StringComparison.Ordinal);
-                if (framesStart < 0)
+                // ============================================================
+                // 【重要】此處邏輯非常容易讀錯，修改前務必確認理解：
+                //
+                // "frames": 這個 key 的長度是 9（從前面的 " 到後面的 :）
+                // 例如 JSON: {"frames": { ... }}
+                //              ^^^^^ position of first "
+                //                   frames": ^^^^^ position +8 (8 chars)
+                //                           : ^^^^^ position +9 (after key)
+                //
+                // IndexOf("\"frames\":") 返回第一個 " 的位置 (frameStart)
+                // 所以 framesKeyEnd = frameStart + 9，才能跳到 key 之後
+                //
+                // 然後要跳過空白（通常有換行或空格），才會遇到真正的 [ 或 {
+                // ============================================================
+                int framesKeyEnd = jsonContent.IndexOf("\"frames\":", StringComparison.Ordinal) + 9;
+                if (framesKeyEnd < 9)
                 {
                     atlas.sprites = Array.Empty<SpriteFrame>();
                     return atlas;
                 }
 
-                int afterFrames = framesStart + 8;
-                while (afterFrames < jsonContent.Length && char.IsWhiteSpace(jsonContent[afterFrames]))
-                    afterFrames++;
+                int formatStart = framesKeyEnd;
+                while (formatStart < jsonContent.Length && char.IsWhiteSpace(jsonContent[formatStart]))
+                    formatStart++;
 
-                if (afterFrames >= jsonContent.Length)
+                if (formatStart >= jsonContent.Length)
                 {
                     atlas.sprites = Array.Empty<SpriteFrame>();
                     return atlas;
                 }
 
-                char nextChar = jsonContent[afterFrames];
-                Debug.Log($"[SpritePackerParser] framesStart={framesStart}, afterFrames={afterFrames}, char='{nextChar}' ({(int)nextChar})");
+                char nextChar = jsonContent[formatStart];
                 if (nextChar == '[')
                 {
-                    spriteFrames = ParseFramesArray(jsonContent, afterFrames + 1);
+                    // 陣列格式：{"frames": [{filename:..., frame:{...}}, ...]}
+                    spriteFrames = ParseFramesArray(jsonContent, formatStart + 1);
                 }
                 else if (nextChar == '{')
                 {
-                    spriteFrames = ParseFramesObject(jsonContent, afterFrames);
+                    // Key-value 格式：{"frames": {"filename.png": {frame:{...}}, ...}}
+                    spriteFrames = ParseFramesObject(jsonContent, formatStart);
                 }
 
                 atlas.sprites = spriteFrames.ToArray();
