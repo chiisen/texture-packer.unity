@@ -5,8 +5,24 @@ using UnityEngine;
 
 namespace SpriteUnpacker
 {
+    /// <summary>
+    /// Sprite Unpacker 編輯器視窗。
+    /// 提供圖形化介面，讓使用者透過拖放或按鈕選擇 Sprite Atlas 檔案，
+    /// 並指定輸出資料夾，即可批次將 Atlas 內的每個 Sprite 匯出為獨立的 PNG 檔案。
+    /// </summary>
+    /// <remarks>
+    /// 選單路徑：Window/Sprite Tool/Unpack Sprite to PNGs
+    /// 使用方式：
+    /// 1. 從選單開啟此視窗
+    /// 2. 將多個 .png 檔案拖放到拖放區域，或使用 Legacy 按鈕選擇單一檔案
+    /// 3. 設定輸出資料夾
+    /// 4. 點擊「Unpack via Drag & Drop」按鈕執行拆解
+    /// </remarks>
     public class SpriteUnpackerWindow : EditorWindow
     {
+        /// <summary>
+        /// 選單項目：開啟 Sprite Unpacker 視窗。
+        /// </summary>
         [MenuItem("Window/Sprite Tool/Unpack Sprite to PNGs")]
         public static void ShowWindow()
         {
@@ -14,15 +30,32 @@ namespace SpriteUnpacker
             window.minSize = new Vector2(400, 200);
         }
 
+        /// <summary>
+        /// 當視窗啟用時的初始化作業。
+        /// </summary>
         private void OnEnable()
         {
             autoRepaintOnSceneChange = true;
         }
 
+        /// <summary>
+        /// 拖放區域選中的檔案路徑陣列。
+        /// </summary>
         private string[] _draggedFiles;
+
+        /// <summary>
+        /// 檔案列表的捲動位置。
+        /// </summary>
         private Vector2 _scrollPos;
+
+        /// <summary>
+        /// 輸出資料夾路徑。
+        /// </summary>
         private string _outputFolder = "";
 
+        /// <summary>
+        /// 繪製視窗 UI。
+        /// </summary>
         private void OnGUI()
         {
             GUILayout.Label("Sprite Unpacker", EditorStyles.boldLabel);
@@ -34,6 +67,7 @@ namespace SpriteUnpacker
 
             EditorGUILayout.Space();
 
+            // 拖放區域
             _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos, GUILayout.Height(120));
             EditorGUILayout.BeginVertical("box");
 
@@ -58,6 +92,7 @@ namespace SpriteUnpacker
                     break;
             }
 
+            // 顯示選中的檔案列表
             if (_draggedFiles != null && _draggedFiles.Length > 0)
             {
                 EditorGUILayout.Space();
@@ -73,9 +108,11 @@ namespace SpriteUnpacker
 
             EditorGUILayout.Space();
 
+            // 輸出資料夾輸入框
             _outputFolder = EditorGUILayout.TextField("Output Folder", _outputFolder);
 
             EditorGUILayout.BeginHorizontal();
+            // 瀏覽輸出資料夾按鈕
             if (GUILayout.Button("Browse Output Folder", GUILayout.Height(25)))
             {
                 string folder = EditorUtility.OpenFolderPanel("Select Output Folder", _outputFolder, "");
@@ -83,6 +120,7 @@ namespace SpriteUnpacker
                     _outputFolder = folder;
             }
 
+            // 執行拆解按鈕（需要已選取檔案且已設定輸出資料夾）
             GUI.enabled = _draggedFiles != null && _draggedFiles.Length > 0 && !string.IsNullOrEmpty(_outputFolder);
             if (GUILayout.Button("Unpack via Drag & Drop", GUILayout.Height(25)))
             {
@@ -93,24 +131,34 @@ namespace SpriteUnpacker
 
             EditorGUILayout.Space();
 
+            // Legacy 單選按鈕（用於相容性）
             GUI.enabled = !string.IsNullOrEmpty(_outputFolder);
-            EditorGUI.BeginFadeGroup(0f);
             if (GUILayout.Button("Select Single File (Legacy)", GUILayout.Height(25)))
             {
-                string[] selectedFiles = EditorUtility.OpenFilePanelWithFilters(
+                string selectedFile = EditorUtility.OpenFilePanel(
                     "Select Sprite Atlas PNG",
                     "",
-                    new string[] { "PNG Images", "png", "All Files", "*" });
+                    "png");
 
-                if (selectedFiles != null && selectedFiles.Length > 0)
+                if (!string.IsNullOrEmpty(selectedFile))
                 {
-                    UnpackSprites(selectedFiles);
+                    UnpackSprites(new string[] { selectedFile });
                 }
             }
-            EditorGUI.EndFadeGroup();
             GUI.enabled = true;
         }
 
+        /// <summary>
+        /// 執行 Sprite 拆解並匯出作業。
+        /// </summary>
+        /// <param name="selectedFiles">要處理的檔案路徑陣列。</param>
+        /// <remarks>
+        /// 此方法會：
+        /// 1. 若未設定輸出資料夾，彈出資料夾選擇對話框
+        /// 2. 批次處理每個 Atlas 檔案
+        /// 3. 顯示進度條
+        /// 4. 處理完畢後顯示完成提示對話框
+        /// </remarks>
         private void UnpackSprites(string[] selectedFiles)
         {
             if (selectedFiles == null || selectedFiles.Length == 0)
@@ -154,6 +202,12 @@ namespace SpriteUnpacker
             EditorUtility.DisplayDialog("完成", "執行完畢", "OK");
         }
 
+        /// <summary>
+        /// 處理單一張 Sprite Atlas 圖片，將其內的所有 Sprite 匯出為獨立的 PNG 檔案。
+        /// 自動偵測使用 TexturePacker JSON 模式或 Unity Sprite Metadata 模式。
+        /// </summary>
+        /// <param name="atlasPath">Atlas 圖片檔案的路徑。</param>
+        /// <param name="outputFolder">輸出資料夾的路徑。</param>
         private void ProcessSpriteAtlas(string atlasPath, string outputFolder)
         {
             if (!atlasPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
@@ -162,6 +216,63 @@ namespace SpriteUnpacker
                 return;
             }
 
+            string jsonPath = SpriteUnpackerCore.GetAtlasJsonPath(atlasPath);
+            if (SpriteUnpackerCore.HasTexturePackJson(atlasPath))
+            {
+                ProcessTexturePackerAtlas(atlasPath, jsonPath, outputFolder);
+            }
+            else
+            {
+                ProcessUnitySpriteAtlas(atlasPath, outputFolder);
+            }
+        }
+
+        /// <summary>
+        /// 使用 TexturePacker JSON 模式處理 Atlas。
+        /// </summary>
+        /// <param name="atlasPath">Atlas 圖片檔案的路徑。</param>
+        /// <param name="jsonPath">TexturePacker JSON 檔案的路徑。</param>
+        /// <param name="outputFolder">輸出資料夾的路徑。</param>
+        private void ProcessTexturePackerAtlas(string atlasPath, string jsonPath, string outputFolder)
+        {
+            SpriteFrame[] frames = TexturePackerParser.GetSpriteFrames(jsonPath);
+            if (frames == null || frames.Length == 0)
+            {
+                Debug.LogWarning($"[SpriteUnpacker] No frames found in JSON: {jsonPath}");
+                return;
+            }
+
+            Texture2D atlasTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(atlasPath);
+            if (atlasTexture == null)
+            {
+                Debug.LogError($"[SpriteUnpacker] Failed to load atlas texture: {atlasPath}");
+                return;
+            }
+
+            SpriteUnpackerCore.SetReadableIfNeeded(atlasTexture);
+
+            foreach (SpriteFrame frame in frames)
+            {
+                Texture2D extractedTex = SpriteUnpackerCore.ExtractFromTexturePackJson(atlasTexture, frame);
+                if (extractedTex != null)
+                {
+                    string spriteName = Path.GetFileNameWithoutExtension(frame.name);
+                    SpriteUnpackerExporter.ExportTextureToPng(extractedTex, outputFolder, spriteName);
+                    UnityEngine.Object.DestroyImmediate(extractedTex);
+                    Debug.Log($"[SpriteUnpacker] {spriteName} Done! (TexturePacker mode)");
+                }
+            }
+
+            SpriteUnpackerCore.RestoreReadable(atlasTexture);
+        }
+
+        /// <summary>
+        /// 使用 Unity Sprite Metadata 模式處理 Atlas。
+        /// </summary>
+        /// <param name="atlasPath">Atlas 圖片檔案的路徑。</param>
+        /// <param name="outputFolder">輸出資料夾的路徑。</param>
+        private void ProcessUnitySpriteAtlas(string atlasPath, string outputFolder)
+        {
             Sprite[] sprites = SpriteUnpackerCore.GetAllSpritesFromTexture(atlasPath);
 
             if (sprites == null || sprites.Length == 0)
@@ -183,7 +294,7 @@ namespace SpriteUnpacker
                 SpriteUnpackerExporter.ExportSprite(sprite, outputFolder);
                 SpriteUnpackerCore.RestoreReadable(texture);
 
-                Debug.Log($"[SpriteUnpacker] {sprite.name} Done!");
+                Debug.Log($"[SpriteUnpacker] {sprite.name} Done! (Unity mode)");
             }
         }
     }
