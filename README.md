@@ -70,3 +70,25 @@ SpriteUnpacker 自動偵測並支援兩種模式：
 3. 拖放 PNG 檔案到視窗，**Output Folder 會自動填入**（預設為 PNG 檔案同目錄下的子資料夾，資料夾名稱與 PNG 檔名相同）
 4. 若要改變輸出位置，可直接修改 Output Folder 或點擊「Browse Output Folder」選擇新目錄
 5. 點擊「Unpack via Drag & Drop」執行拆解
+
+---
+
+## Bug Log
+
+### 2026-05-13: Unpack 輸出異常（輸出 PNG 小於 200 bytes）
+
+**原因**：座標系統不一致
+
+- **SpritePacker**（打包）：`PackTextures` 回傳的 Rect 是 **bottom-left origin**（Unity 紋理標準）
+- **SpriteUnpacker**（拆包）：假設 JSON 的 Y=0 是 **top-left**（標準 TexturePacker 格式）
+
+兩者沒有對齊。打包輸出 JSON 時，Y 軸沒有翻轉，導致拆包時 Y 軸方向錯誤，取得的像素範圍完全錯誤，輸出幾乎是空白的 PNG（140 bytes 左右）。
+
+**修復**：
+- `SpritePackerCore.cs`：輸出 JSON 時，將 Y 軸翻轉為 top-left
+  ```csharp
+  int tpY = atlasHeight - y - h;
+  ```
+- `SpriteUnpackerCore.cs`：保持 Y 軸翻換邏輯（`srcY = atlasHeight - y - height`）
+
+**預防**：日後修改座標相關邏輯時，必須確認打包/拆包兩端的座標系統一致，修改後需實際測試來回拆/封裝是否能正確還原。

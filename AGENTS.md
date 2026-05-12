@@ -57,3 +57,31 @@ Debug.Log($"[SpriteUnpacker] GetPixels32 for '{frame.name}': {pixels.Length} pix
 mcp-unity_recompile_scripts
 mcp-unity_get_console_logs limit=20 logType=error
 ```
+
+---
+
+## 座標系統規範（防止 Y 軸方向錯誤）
+
+### 核心原則
+
+**Unity `Texture2D.GetPixels32()` 的 Y=0 在底部；標準 TexturePacker JSON 的 Y=0 在頂部。**
+
+兩端不一致，必須明确轉換，不能假設兩邊相同。
+
+### 規範
+
+1. **打包（SpritePacker）**：輸出 JSON 前，Y 軸必須翻轉
+   ```csharp
+   int tpY = atlasHeight - y - h;  // bottom-left → top-left
+   ```
+
+2. **拆包（SpriteUnpacker）**：讀取 JSON 後，Y 軸必須翻轉
+   ```csharp
+   int srcY = atlasHeight - y - height;  // top-left → bottom-left
+   ```
+
+3. **修改前確認**：任何座標相關的修改，完成後必須實際測試來回拆/封裝是否能正確還原
+   - 打包 → 拆包 → 圖案一致
+   - 拆包 → 打包 → 圖案一致
+
+4. **禁止**：不要假設「反正座標系相同，不用轉換」——這個假設是 Bug 的根源。
