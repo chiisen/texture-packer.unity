@@ -146,52 +146,24 @@ namespace SpriteUnpacker
                     return atlas;
                 }
 
-                int framesArrayStart = jsonContent.IndexOf("[", framesStart + 8);
-                if (framesArrayStart < 0)
+                int afterFrames = framesStart + 8;
+                while (afterFrames < jsonContent.Length && char.IsWhiteSpace(jsonContent[afterFrames]))
+                    afterFrames++;
+
+                if (afterFrames >= jsonContent.Length)
                 {
                     atlas.sprites = Array.Empty<SpriteFrame>();
                     return atlas;
                 }
 
-                int pos = framesArrayStart + 1;
-
-                while (pos < jsonContent.Length)
+                char nextChar = jsonContent[afterFrames];
+                if (nextChar == '[')
                 {
-                    int objStart = SkipToChar(pos, jsonContent, '{');
-                    if (objStart < 0)
-                        break;
-
-                    int objEnd = FindBraceEnd(jsonContent, objStart);
-                    if (objEnd <= objStart)
-                    {
-                        pos = objEnd + 1;
-                        continue;
-                    }
-
-                    string frameObj = jsonContent.Substring(objStart, objEnd - objStart + 1);
-
-                    string filename = GetString(frameObj, "\"filename\":");
-                    if (!string.IsNullOrEmpty(filename) && filename.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
-                    {
-                        string frameData = GetNestedObject(frameObj, "\"frame\":");
-                        if (!string.IsNullOrEmpty(frameData))
-                        {
-                            SpriteFrame frame = new SpriteFrame
-                            {
-                                name = filename,
-                                x = GetInt(frameData, "\"x\":"),
-                                y = GetInt(frameData, "\"y\":"),
-                                w = GetInt(frameData, "\"w\":"),
-                                h = GetInt(frameData, "\"h\":")
-                            };
-                            if (frame.w > 0 && frame.h > 0)
-                            {
-                                spriteFrames.Add(frame);
-                            }
-                        }
-                    }
-
-                    pos = objEnd + 1;
+                    spriteFrames = ParseFramesArray(jsonContent, afterFrames + 1);
+                }
+                else if (nextChar == '{')
+                {
+                    spriteFrames = ParseFramesObject(jsonContent, afterFrames);
                 }
 
                 atlas.sprites = spriteFrames.ToArray();
@@ -203,6 +175,111 @@ namespace SpriteUnpacker
                 Debug.LogError($"[SpriteUnpacker] Failed to parse JSON: {ex}");
                 return null;
             }
+        }
+
+        private static List<SpriteFrame> ParseFramesArray(string json, int startPos)
+        {
+            List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
+            int pos = startPos;
+
+            while (pos < json.Length)
+            {
+                int objStart = SkipToChar(pos, json, '{');
+                if (objStart < 0)
+                    break;
+
+                int objEnd = FindBraceEnd(json, objStart);
+                if (objEnd <= objStart)
+                {
+                    pos = objEnd + 1;
+                    continue;
+                }
+
+                string frameObj = json.Substring(objStart, objEnd - objStart + 1);
+
+                string filename = GetString(frameObj, "\"filename\":");
+                if (!string.IsNullOrEmpty(filename) && filename.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    string frameData = GetNestedObject(frameObj, "\"frame\":");
+                    if (!string.IsNullOrEmpty(frameData))
+                    {
+                        SpriteFrame frame = new SpriteFrame
+                        {
+                            name = filename,
+                            x = GetInt(frameData, "\"x\":"),
+                            y = GetInt(frameData, "\"y\":"),
+                            w = GetInt(frameData, "\"w\":"),
+                            h = GetInt(frameData, "\"h\":")
+                        };
+                        if (frame.w > 0 && frame.h > 0)
+                        {
+                            spriteFrames.Add(frame);
+                        }
+                    }
+                }
+
+                pos = objEnd + 1;
+            }
+
+            return spriteFrames;
+        }
+
+        private static List<SpriteFrame> ParseFramesObject(string json, int startPos)
+        {
+            List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
+            int pos = startPos;
+
+            while (pos < json.Length)
+            {
+                int keyStart = json.IndexOf("\"", pos);
+                if (keyStart < 0)
+                    break;
+
+                int keyEnd = json.IndexOf("\":", keyStart, StringComparison.Ordinal);
+                if (keyEnd < 0 || keyEnd - keyStart > 200)
+                {
+                    pos++;
+                    continue;
+                }
+
+                string key = json.Substring(keyStart + 1, keyEnd - keyStart - 1);
+                if (!key.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    pos = keyEnd + 1;
+                    continue;
+                }
+
+                int frameObjStart = json.IndexOf("{", keyEnd, StringComparison.Ordinal);
+                int frameObjEnd = FindBraceEnd(json, frameObjStart);
+                if (frameObjEnd <= frameObjStart)
+                {
+                    pos = frameObjEnd + 1;
+                    continue;
+                }
+
+                string frameObj = json.Substring(frameObjStart, frameObjEnd - frameObjStart + 1);
+                string frameData = GetNestedObject(frameObj, "\"frame\":");
+
+                if (!string.IsNullOrEmpty(frameData))
+                {
+                    SpriteFrame frame = new SpriteFrame
+                    {
+                        name = key,
+                        x = GetInt(frameData, "\"x\":"),
+                        y = GetInt(frameData, "\"y\":"),
+                        w = GetInt(frameData, "\"w\":"),
+                        h = GetInt(frameData, "\"h\":")
+                    };
+                    if (frame.w > 0 && frame.h > 0)
+                    {
+                        spriteFrames.Add(frame);
+                    }
+                }
+
+                pos = frameObjEnd + 1;
+            }
+
+            return spriteFrames;
         }
 
         /// <summary>

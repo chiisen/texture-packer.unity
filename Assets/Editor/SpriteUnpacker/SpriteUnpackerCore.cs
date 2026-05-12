@@ -179,11 +179,13 @@ namespace SpriteUnpacker
             Color32[] allPixels = atlasTexture.GetPixels32();
             Color32[] croppedPixels = new Color32[width * height];
 
+            int srcY = atlasTexture.height - y - height;
+
             for (int py = 0; py < height; py++)
             {
                 for (int px = 0; px < width; px++)
                 {
-                    int srcIndex = (y + py) * atlasTexture.width + (x + px);
+                    int srcIndex = (srcY + py) * atlasTexture.width + (x + px);
                     int dstIndex = py * width + px;
                     croppedPixels[dstIndex] = allPixels[srcIndex];
                 }
