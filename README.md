@@ -12,7 +12,7 @@ TexturePacker Unity 3D 版
 
 | 腳本 | 用途 |
 |------|------|
-| `SpriteUnpackerWindow.cs` | 編輯器視窗與 UI，選單入口 (`Window/Sprite Tool/Unpack Sprite to PNGs`)，處理檔案拖放與使用者互動 |
+| `SpriteUnpackerWindow.cs` | 編輯器視窗與 UI，選單入口 (`SpriteUnpacker/Unpack to PNGs`)，處理檔案拖放與使用者互動 |
 | `SpriteUnpackerCore.cs` | 核心拆解邏輯，讀取 Sprite、提取像素、設定紋理可讀取屬性 |
 | `SpriteUnpackerExporter.cs` | PNG 匯出工具，將 Texture2D 編碼為 PNG 並寫入磁碟 |
 | `TexturePackerParser.cs` | TexturePacker JSON 格式解析器 |

@@ -16,7 +16,7 @@ Assets/Editor/SpriteUnpacker/
 ## 3. 功能規格
 
 ### 3.1 選單與視窗 (R1)
-- 路徑：`Window/Sprite Tool/Unpack Sprite to PNGs`
+- 路徑：`SpriteUnpacker/Unpack to PNGs`
 - 開啟 `SpriteUnpackerWindow` EditorWindow
 
 ### 3.2 檔案選擇 (R2)

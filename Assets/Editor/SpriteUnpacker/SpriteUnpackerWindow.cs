@@ -23,7 +23,7 @@ namespace SpriteUnpacker
         /// <summary>
         /// 選單項目：開啟 Sprite Unpacker 視窗。
         /// </summary>
-        [MenuItem("Window/Sprite Tool/Unpack Sprite to PNGs")]
+        [MenuItem("SpriteUnpacker/Unpack to PNGs")]
         public static void ShowWindow()
         {
             var window = GetWindow<SpriteUnpackerWindow>("Sprite Unpacker");
@@ -86,6 +86,19 @@ namespace SpriteUnpacker
                         {
                             DragAndDrop.AcceptDrag();
                             _draggedFiles = DragAndDrop.paths;
+
+                            // 拖曳成功後，自動設定預設輸出資料夾（第一個檔案名稱不含副檔名）
+                            if (_draggedFiles != null && _draggedFiles.Length > 0)
+                            {
+                                string firstFile = _draggedFiles[0];
+                                if (firstFile.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string atlasDir = Path.GetDirectoryName(firstFile);
+                                    string atlasName = Path.GetFileNameWithoutExtension(firstFile);
+                                    _outputFolder = Path.Combine(atlasDir, atlasName);
+                                    Debug.Log($"[SpriteUnpacker] Default output folder set: {_outputFolder}");
+                                }
+                            }
                         }
                         GUI.changed = true;
                     }
@@ -210,19 +223,40 @@ namespace SpriteUnpacker
         /// <param name="outputFolder">輸出資料夾的路徑。</param>
         private void ProcessSpriteAtlas(string atlasPath, string outputFolder)
         {
+            Debug.Log($"[SpriteUnpacker] ProcessSpriteAtlas called: {atlasPath}");
+
             if (!atlasPath.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
             {
                 EditorUtility.DisplayDialog("錯誤", $"非 Sprite 檔案：{Path.GetFileName(atlasPath)}", "OK");
                 return;
             }
 
+            // 若未指定輸出資料夾，預設為 atlas 所在目錄下的子資料夾（不含副檔名）
+            if (string.IsNullOrEmpty(outputFolder))
+            {
+                string atlasDir = Path.GetDirectoryName(atlasPath);
+                string atlasName = Path.GetFileNameWithoutExtension(atlasPath);
+                outputFolder = Path.Combine(atlasDir, atlasName);
+            }
+
+            // 若輸出資料夾不存在，自動建立
+            if (!Directory.Exists(outputFolder))
+            {
+                Directory.CreateDirectory(outputFolder);
+                Debug.Log($"[SpriteUnpacker] Created output folder: {outputFolder}");
+            }
+
             string jsonPath = SpriteUnpackerCore.GetAtlasJsonPath(atlasPath);
+            Debug.Log($"[SpriteUnpacker] JSON path: {jsonPath}");
+
             if (SpriteUnpackerCore.HasTexturePackJson(atlasPath))
             {
+                Debug.Log($"[SpriteUnpacker] Using TexturePacker JSON mode");
                 ProcessTexturePackerAtlas(atlasPath, jsonPath, outputFolder);
             }
             else
             {
+                Debug.Log($"[SpriteUnpacker] Using Unity Sprite mode");
                 ProcessUnitySpriteAtlas(atlasPath, outputFolder);
             }
         }
@@ -235,7 +269,11 @@ namespace SpriteUnpacker
         /// <param name="outputFolder">輸出資料夾的路徑。</param>
         private void ProcessTexturePackerAtlas(string atlasPath, string jsonPath, string outputFolder)
         {
+            Debug.Log($"[SpriteUnpacker] ProcessTexturePackerAtlas called: {atlasPath}, {jsonPath}");
+
             SpriteFrame[] frames = TexturePackerParser.GetSpriteFrames(jsonPath);
+            Debug.Log($"[SpriteUnpacker] GetSpriteFrames returned: {(frames == null ? "null" : frames.Length.ToString())}");
+
             if (frames == null || frames.Length == 0)
             {
                 Debug.LogWarning($"[SpriteUnpacker] No frames found in JSON: {jsonPath}");

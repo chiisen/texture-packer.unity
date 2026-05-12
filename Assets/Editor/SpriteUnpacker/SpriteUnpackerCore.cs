@@ -174,16 +174,20 @@ namespace SpriteUnpacker
                 return null;
             }
 
-            Color32[] pixels = atlasTexture.GetPixels32();
+            // TexturePacker Y軸原點在左上，Unity GetPixels32 原點在左下
+            // 需要轉換：unityY = atlasHeight - frame.y - frame.h
+            int unityY = atlasTexture.height - y - height;
+
+            Color32[] allPixels = atlasTexture.GetPixels32();
             Color32[] croppedPixels = new Color32[width * height];
 
             for (int py = 0; py < height; py++)
             {
                 for (int px = 0; px < width; px++)
                 {
-                    int srcIndex = (y + py) * atlasTexture.width + (x + px);
+                    int srcIndex = (unityY + py) * atlasTexture.width + (x + px);
                     int dstIndex = py * width + px;
-                    croppedPixels[dstIndex] = pixels[srcIndex];
+                    croppedPixels[dstIndex] = allPixels[srcIndex];
                 }
             }
 
@@ -222,9 +226,17 @@ namespace SpriteUnpacker
             string fullPath = jsonPath;
 
             if (!Path.IsPathRooted(fullPath))
-                fullPath = Path.Combine(Application.dataPath, jsonPath);
+            {
+                string dataPath = Application.dataPath;
+                if (fullPath.StartsWith("Assets/", System.StringComparison.OrdinalIgnoreCase))
+                    fullPath = Path.Combine(dataPath, fullPath.Substring("Assets/".Length));
+                else
+                    fullPath = Path.Combine(dataPath, fullPath);
+            }
 
-            return File.Exists(fullPath);
+            bool exists = File.Exists(fullPath);
+            Debug.Log($"[SpriteUnpacker] HasTexturePackJson: {atlasPath} -> {fullPath} = {exists}");
+            return exists;
         }
     }
 }

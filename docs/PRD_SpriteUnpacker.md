@@ -12,7 +12,7 @@
 
 ### 3.1 編輯器選單接入 (R1)
 - **需求**：在 Unity 選單列新增入口。
-- **參考路徑**：`Window/Sprite Tool/Unpack Sprite to PNGs`。
+- **參考路徑**：`SpriteUnpacker/Unpack to PNGs`。
 - **觸發動作**：點擊後啟動拆解流程。
 
 ### 3.2 檔案與路徑選擇 (R2)

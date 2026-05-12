@@ -18,22 +18,22 @@ namespace SpriteUnpacker
         public string name;
 
         /// <summary>
-        /// Frame 在大圖中的 X 座標。
+        /// Frame 在大圖中的 X 座標（像素）。
         /// </summary>
         public int x;
 
         /// <summary>
-        /// Frame 在大圖中的 Y 座標。
+        /// Frame 在大圖中的 Y 座標（像素，Y=0 在左上角）。
         /// </summary>
         public int y;
 
         /// <summary>
-        /// Frame 的寬度。
+        /// Frame 的寬度（像素）。
         /// </summary>
         public int w;
 
         /// <summary>
-        /// Frame 的高度。
+        /// Frame 的高度（像素）。
         /// </summary>
         public int h;
     }
@@ -82,26 +82,19 @@ namespace SpriteUnpacker
                 return null;
 
             string fullPath = GetFullPath(jsonPath);
-
             if (!File.Exists(fullPath))
                 return null;
 
-            string jsonContent;
             try
             {
-                jsonContent = File.ReadAllText(fullPath, System.Text.Encoding.UTF8);
+                string jsonContent = File.ReadAllText(fullPath, System.Text.Encoding.UTF8);
+                return ParseJson(jsonContent);
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[SpriteUnpacker] Failed to read JSON: {ex}");
                 return null;
             }
-
-            if (string.IsNullOrWhiteSpace(jsonContent))
-                return null;
-
-            TexturePackerAtlas? result = ParseJson(jsonContent);
-            return result;
         }
 
         /// <summary>
@@ -115,52 +108,89 @@ namespace SpriteUnpacker
             return atlas?.sprites;
         }
 
+        /// <summary>
+        /// 將 Assets 相對路徑轉換為系統完整路徑。
+        /// </summary>
+        /// <param name="path">Assets 相對路徑或完整路徑。</param>
+        /// <returns>系統完整路徑。</returns>
         private static string GetFullPath(string path)
         {
+            // 已是完整路徑，直接回傳
             if (Path.IsPathRooted(path))
                 return path;
 
-            return Path.Combine(Application.dataPath, path);
+            string dataPath = Application.dataPath;
+            // 移除 "Assets/" 前綴，與 Application.dataPath 拼接
+            if (path.StartsWith("Assets/", System.StringComparison.OrdinalIgnoreCase))
+                return Path.Combine(dataPath, path.Substring("Assets/".Length));
+
+            return Path.Combine(dataPath, path);
         }
 
+        /// <summary>
+        /// 解析 JSON 字串內容為 TexturePackerAtlas 物件。
+        /// </summary>
+        /// <param name="jsonContent">JSON 字串內容。</param>
+        /// <returns>TexturePackerAtlas 物件；若解析失敗則傳回 null。</returns>
         private static TexturePackerAtlas? ParseJson(string jsonContent)
         {
             try
             {
-                var jsonDoc = JsonUtility.FromJson<TexturePackerJson>(jsonContent);
-                if (jsonDoc == null || jsonDoc.meta == null)
-                    return null;
+                TexturePackerAtlas atlas = new TexturePackerAtlas();
+                List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
 
-                TexturePackerAtlas atlas = new TexturePackerAtlas
-                {
-                    imageName = jsonDoc.meta.image ?? string.Empty,
-                    atlasWidth = jsonDoc.meta.size?.w ?? 0,
-                    atlasHeight = jsonDoc.meta.size?.h ?? 0,
-                    sprites = null
-                };
-
-                if (jsonDoc.frames != null)
-                {
-                    List<SpriteFrame> spriteFrames = new List<SpriteFrame>();
-                    foreach (var kvp in jsonDoc.frames)
-                    {
-                        SpriteFrame frame = new SpriteFrame
-                        {
-                            name = kvp.Key,
-                            x = kvp.Value.frame?.x ?? 0,
-                            y = kvp.Value.frame?.y ?? 0,
-                            w = kvp.Value.frame?.w ?? 0,
-                            h = kvp.Value.frame?.h ?? 0
-                        };
-                        spriteFrames.Add(frame);
-                    }
-                    atlas.sprites = spriteFrames.ToArray();
-                }
-                else
+                // 定位 "frames" 區塊的起始位置
+                int framesStart = jsonContent.IndexOf("\"frames\":", StringComparison.Ordinal);
+                if (framesStart < 0)
                 {
                     atlas.sprites = Array.Empty<SpriteFrame>();
+                    return atlas;
                 }
 
+                // 找到 frames 物件的起始大括號
+                int framesObjStart = jsonContent.IndexOf("{", framesStart + 8);
+                int pos = framesObjStart + 1;
+
+                // 手動解析每個 frame 條目（不使用 Regex 或 JsonUtility，避免支援問題）
+                while (pos < jsonContent.Length)
+                {
+                    // 尋找 PNG 檔名作為 frame 的 key
+                    int keyStart = jsonContent.IndexOf("\"", pos);
+                    if (keyStart < 0)
+                        break;
+
+                    int keyEnd = jsonContent.IndexOf("\":", keyStart, StringComparison.Ordinal);
+                    if (keyEnd < 0 || keyEnd - keyStart > 200)
+                    {
+                        pos++;
+                        continue;
+                    }
+
+                    string key = jsonContent.Substring(keyStart + 1, keyEnd - keyStart - 1);
+                    // 確認是 PNG 檔案
+                    if (!key.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        pos = keyEnd + 1;
+                        continue;
+                    }
+
+                    // 找到此 frame 的 frame 物件
+                    int frameObjStart = jsonContent.IndexOf("{", keyEnd, StringComparison.Ordinal);
+                    int frameObjEnd = FindBraceEnd(jsonContent, frameObjStart);
+                    string frameObj = jsonContent.Substring(frameObjStart, frameObjEnd - frameObjStart + 1);
+
+                    // 解析 frame 物件中的 x, y, w, h
+                    SpriteFrame frame = ParseFrame(key, frameObj);
+                    if (frame.w > 0 && frame.h > 0)
+                    {
+                        spriteFrames.Add(frame);
+                    }
+
+                    pos = frameObjEnd + 1;
+                }
+
+                atlas.sprites = spriteFrames.ToArray();
+                Debug.Log($"[SpriteUnpacker] Parsed {atlas.sprites.Length} sprites");
                 return atlas;
             }
             catch (Exception ex)
@@ -170,46 +200,88 @@ namespace SpriteUnpacker
             }
         }
 
-        [Serializable]
-        private class TexturePackerJson
+        /// <summary>
+        /// 解析單一 frame 物件，提取 x, y, w, h 欄位。
+        /// </summary>
+        /// <param name="name">Frame 的名稱（PNG 檔名）。</param>
+        /// <param name="frameObj">frame 物件的 JSON 字串。</param>
+        /// <returns>SpriteFrame 結構。</returns>
+        private static SpriteFrame ParseFrame(string name, string frameObj)
         {
-            public Dictionary<string, FrameData> frames;
-            public MetaData meta;
+            SpriteFrame frame = new SpriteFrame
+            {
+                name = name,
+                x = GetInt(frameObj, "\"x\":"),
+                y = GetInt(frameObj, "\"y\":"),
+                w = GetInt(frameObj, "\"w\":"),
+                h = GetInt(frameObj, "\"h\":")
+            };
+            return frame;
         }
 
-        [Serializable]
-        private class MetaData
+        /// <summary>
+        /// 從 JSON 字串中取出指定 key 的 int 值。
+        /// </summary>
+        /// <param name="json">JSON 字串。</param>
+        /// <param name="key">要查找的 key，例如 "\"x\":".</param>
+        /// <returns>解析出的 int 值；若找不到則回傳 0。</returns>
+        private static int GetInt(string json, string key)
         {
-            public string app;
-            public string image;
-            public string format;
-            public SizeData size;
+            int keyIndex = json.IndexOf(key, StringComparison.Ordinal);
+            if (keyIndex < 0)
+                return 0;
+
+            int valueStart = keyIndex + key.Length;
+            int pos = valueStart;
+
+            // 跳過空白字元
+            while (pos < json.Length && (json[pos] == ' ' || json[pos] == '\t' || json[pos] == '\n' || json[pos] == '\r'))
+                pos++;
+
+            int valueEnd = pos;
+            // 讀取連續的數字
+            while (valueEnd < json.Length && char.IsDigit(json[valueEnd]))
+                valueEnd++;
+
+            if (valueEnd > pos && int.TryParse(json.Substring(pos, valueEnd - pos), out int result))
+                return result;
+
+            return 0;
         }
 
-        [Serializable]
-        private class SizeData
+        /// <summary>
+        /// 找到配對的大括號結束位置（考慮字串內的括號）。
+        /// </summary>
+        /// <param name="json">JSON 字串。</param>
+        /// <param name="startBrace">起始大括號的位置。</param>
+        /// <returns>結束大括號的位置。</returns>
+        private static int FindBraceEnd(string json, int startBrace)
         {
-            public int w;
-            public int h;
-        }
+            int braceCount = 1;
+            bool inString = false;
+            int i = startBrace + 1;
 
-        [Serializable]
-        private class FrameData
-        {
-            public FrameRect frame;
-            public bool rotated;
-            public bool trimmed;
-            public FrameRect spriteSourceSize;
-            public SizeData sourceSize;
-        }
+            while (i < json.Length && braceCount > 0)
+            {
+                char c = json[i];
+                char prev = i > 0 ? json[i - 1] : '\0';
 
-        [Serializable]
-        private class FrameRect
-        {
-            public int x;
-            public int y;
-            public int w;
-            public int h;
+                // 處理字串逸出
+                if (c == '"' && prev != '\\')
+                {
+                    inString = !inString;
+                }
+                else if (!inString)
+                {
+                    if (c == '{')
+                        braceCount++;
+                    else if (c == '}')
+                        braceCount--;
+                }
+                i++;
+            }
+
+            return i - 1;
         }
     }
 }
