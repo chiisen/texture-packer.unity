@@ -157,6 +157,7 @@ namespace SpriteUnpacker
                 }
 
                 char nextChar = jsonContent[afterFrames];
+                Debug.Log($"[SpritePackerParser] framesStart={framesStart}, afterFrames={afterFrames}, char='{nextChar}' ({(int)nextChar})");
                 if (nextChar == '[')
                 {
                     spriteFrames = ParseFramesArray(jsonContent, afterFrames + 1);
