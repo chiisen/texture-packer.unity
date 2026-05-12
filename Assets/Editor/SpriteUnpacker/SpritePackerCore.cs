@@ -130,14 +130,45 @@ namespace SpriteUnpacker
                 return false;
             }
 
-            Debug.Log($"[SpritePacker] Packing {textures.Count} textures into atlas...");
+            int atlasWidth = Mathf.NextPowerOfTwo(textures[0].width);
+            int atlasHeight = Mathf.NextPowerOfTwo(textures[0].height);
+            for (int i = 1; i < textures.Count; i++)
+            {
+                int w = Mathf.NextPowerOfTwo(textures[i].width);
+                int h = Mathf.NextPowerOfTwo(textures[i].height);
+                if (w > atlasWidth) atlasWidth = w;
+                if (h > atlasHeight) atlasHeight = h;
+            }
+            atlasWidth = Mathf.Clamp(atlasWidth, 64, maxAtlasSize);
+            atlasHeight = Mathf.Clamp(atlasHeight, 64, maxAtlasSize);
 
-            Texture2D atlas = new Texture2D(0, 0);
+            Debug.Log($"[SpritePacker] Packing {textures.Count} textures into atlas ({atlasWidth}x{atlasHeight})...");
+
+            Texture2D atlas = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             Rect[] rects = atlas.PackTextures(textures.ToArray(), 0, maxAtlasSize);
 
-            int atlasWidth = atlas.width;
-            int atlasHeight = atlas.height;
-            Debug.Log($"[SpritePacker] Atlas created: {atlasWidth}x{atlasHeight}");
+            int packedWidth = atlas.width;
+            int packedHeight = atlas.height;
+            Debug.Log($"[SpritePacker] Packed size: {packedWidth}x{packedHeight}");
+
+            Color32[] pixels = atlas.GetPixels32();
+
+            RenderTexture rt = RenderTexture.GetTemporary(atlasWidth, atlasHeight, 0, RenderTextureFormat.ARGB32);
+            Graphics.SetRenderTarget(rt);
+            GL.Clear(true, true, new Color(0, 0, 0, 0));
+
+            GL.LoadPixelMatrix(0, packedWidth, 0, packedHeight);
+            Graphics.DrawTexture(new Rect(0, 0, packedWidth, packedHeight), atlas);
+            GL.PopMatrix();
+
+            Texture2D resizedAtlas = new Texture2D(atlasWidth, atlasHeight, TextureFormat.RGBA32, false);
+            resizedAtlas.ReadPixels(new Rect(0, 0, atlasWidth, atlasHeight), 0, 0);
+            resizedAtlas.Apply();
+
+            Graphics.SetRenderTarget(null);
+            RenderTexture.ReleaseTemporary(rt);
+            UnityEngine.Object.DestroyImmediate(atlas);
+            atlas = resizedAtlas;
 
             TexturePackerJson json = CreateTexturePackerJson(textureNames, rects, atlasWidth, atlasHeight, atlasName);
 
