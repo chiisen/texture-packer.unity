@@ -32,4 +32,21 @@ SpriteUnpacker 自動偵測並支援兩種模式：
 2. 選單 `Window/Sprite Tool/Unpack Sprite to PNGs` 開啟工具
 3. 拖放 PNG 檔案到視窗，**Output Folder 會自動填入**（預設為 PNG 檔案同目錄下的子資料夾，資料夾名稱與 PNG 檔名相同）
 4. 若要改變輸出位置，可直接修改 Output Folder 或點擊「Browse Output Folder」選擇新目錄
-5. 點擊「Unpack via Drag & Drop」執行拆解 |
+5. 點擊「Unpack via Drag & Drop」執行拆解
+
+### 關於打包（Atlas / Packing）
+
+目前此工具僅支援「拆解」（Atlas → 多張 Sprite），不支援「打包」（多張 Sprite → Atlas）。
+
+若要打包，推薦使用 [TexturePacker](https://www.codeandweb.com/texturepacker)（付費但功能完整）：
+
+```
+TexturePacker 支援 Unity 格式輸出：
+- 匯出類型選「Unity」或「TexturePacker JSON」
+- 輸出 .png + .txt（可用此工具拆解還原）
+- 或直接輸出 .png + .meta（Unity Sprite Metadata 模式）
+```
+
+如果需要我幫你寫一個 `SpritePacker`（打包工具），可以規劃需求：
+- 輸入：多張個別 PNG
+- 輸出：一張 Atlas PNG + 設定檔（供 SpriteUnpacker 使用）
