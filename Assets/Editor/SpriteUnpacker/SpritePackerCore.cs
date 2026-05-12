@@ -174,7 +174,7 @@ namespace SpriteUnpacker
                 return null;
 
             byte[] bytes = File.ReadAllBytes(path);
-            Texture2D tex = new Texture2D(0, 0, TextureFormat.RGBA32, false);
+            Texture2D tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             if (!tex.LoadImage(bytes))
             {
                 UnityEngine.Object.DestroyImmediate(tex);
