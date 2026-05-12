@@ -168,17 +168,17 @@ namespace SpriteUnpacker
             int width = frame.w;
             int height = frame.h;
 
-            Debug.Log($"[SpriteUnpacker] Extract: '{frame.name}' rect=({x},{y},{width},{height}) atlas={atlasTexture.width}x{atlasTexture.height}");
-
             if (x + width > atlasTexture.width || y + height > atlasTexture.height)
             {
-                Debug.LogError($"[SpriteUnpacker] Frame out of bounds: {frame.name}");
+                Debug.LogError($"[SpriteUnpacker] Frame out of bounds: {frame.name} (atlas={atlasTexture.width}x{atlasTexture.height})");
                 return null;
             }
 
             Color32[] allPixels = atlasTexture.GetPixels32();
             Color32[] croppedPixels = new Color32[width * height];
 
+            // GetPixels32 Y=0 在底部，JSON Y=0 在頂部（TexturePacker 標準格式）
+            // 轉換：srcY = atlasHeight - jsonY - spriteHeight
             int srcY = atlasTexture.height - y - height;
 
             for (int py = 0; py < height; py++)
@@ -192,9 +192,9 @@ namespace SpriteUnpacker
             }
 
             Texture2D result = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            result.alphaIsTransparency = true;
             result.SetPixels32(croppedPixels);
             result.Apply();
-            result.alphaIsTransparency = true;
 
             return result;
         }

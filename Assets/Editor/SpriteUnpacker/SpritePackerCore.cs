@@ -211,10 +211,14 @@ namespace SpriteUnpacker
                 int w = Mathf.RoundToInt(rects[i].width * atlasWidth);
                 int h = Mathf.RoundToInt(rects[i].height * atlasHeight);
 
+                // TexturePacker JSON uses top-left origin.
+                // PackTextures returns bottom-left origin, so we flip Y.
+                int tpY = atlasHeight - y - h;
+
                 TpFrame frame = new TpFrame
                 {
                     filename = names[i],
-                    frame = new TpFrameRect { x = x, y = y, w = w, h = h },
+                    frame = new TpFrameRect { x = x, y = tpY, w = w, h = h },
                     rotated = false,
                     trimmed = false,
                     spriteSourceSize = new TpSpriteSourceSize { x = 0, y = 0, w = w, h = h },

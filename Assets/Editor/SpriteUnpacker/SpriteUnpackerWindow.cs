@@ -305,7 +305,6 @@ namespace SpriteUnpacker
                     string spriteName = Path.GetFileNameWithoutExtension(frame.name);
                     SpriteUnpackerExporter.ExportTextureToPng(extractedTex, outputFolder, spriteName);
                     UnityEngine.Object.DestroyImmediate(extractedTex);
-                    Debug.Log($"[SpriteUnpacker] {spriteName} Done! (TexturePacker mode)");
                 }
             }
 
