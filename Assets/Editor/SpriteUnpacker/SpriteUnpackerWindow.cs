@@ -29,7 +29,7 @@ namespace SpriteUnpacker
             EditorGUILayout.Space();
 
             EditorGUILayout.HelpBox(
-                "This tool extracts individual sprites from a Sprite Atlas (.png) and exports them as separate PNG files.\n\nDrag & Drop multiple PNG files below, or use the button to select a single file.",
+                "此工具用於從 Sprite Atlas (.png) 中提取各別 Sprite 並匯出為獨立的 PNG 檔案。\n\n將多個 PNG 檔案拖放到下方，或使用按鈕選擇單一檔案。",
                 MessageType.Info);
 
             EditorGUILayout.Space();
@@ -94,7 +94,8 @@ namespace SpriteUnpacker
             EditorGUILayout.Space();
 
             GUI.enabled = !string.IsNullOrEmpty(_outputFolder);
-            if (GUILayout.Button("Select Single File (Legacy)", GUILayout.Height(20)))
+            EditorGUI.BeginFadeGroup(0f);
+            if (GUILayout.Button("Select Single File (Legacy)", GUILayout.Height(25)))
             {
                 string[] selectedFiles = EditorUtility.OpenFilePanelWithFilters(
                     "Select Sprite Atlas PNG",
@@ -106,6 +107,7 @@ namespace SpriteUnpacker
                     UnpackSprites(selectedFiles);
                 }
             }
+            EditorGUI.EndFadeGroup();
             GUI.enabled = true;
         }
 
@@ -143,7 +145,7 @@ namespace SpriteUnpacker
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogError($"[SpriteUnpacker] Error processing {filePath}: {ex.Message}");
+                    Debug.LogError($"[SpriteUnpacker] Error processing {filePath}: {ex}");
                 }
             }
 
@@ -174,11 +176,14 @@ namespace SpriteUnpacker
                     continue;
 
                 Texture2D texture = sprite.texture;
+                if (texture == null)
+                    continue;
+
                 SpriteUnpackerCore.SetReadableIfNeeded(texture);
                 SpriteUnpackerExporter.ExportSprite(sprite, outputFolder);
                 SpriteUnpackerCore.RestoreReadable(texture);
 
-                Debug.Log($"{sprite.name} Done!");
+                Debug.Log($"[SpriteUnpacker] {sprite.name} Done!");
             }
         }
     }
