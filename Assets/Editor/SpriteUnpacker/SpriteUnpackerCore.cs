@@ -47,6 +47,7 @@ namespace SpriteUnpacker
             Texture2D result = new Texture2D(width, height, TextureFormat.RGBA32, false);
             result.SetPixels32(pixels);
             result.Apply();
+            result.alphaIsTransparency = true;
 
             return result;
         }
